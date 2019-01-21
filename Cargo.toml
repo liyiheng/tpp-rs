@@ -1,0 +1,9 @@
+[package]
+name = "tpp"
+version = "0.1.0"
+authors = ["liyiheng <liyihenggnehiyil@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+ncurses = "^5.98"
+chrono = "0.4"
