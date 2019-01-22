@@ -47,7 +47,17 @@ pub fn start_with_margin(pages: &mut Vec<Page>, margin: u8) {
     };
     init_ncurses();
     for p in pages {
-        p.show(&mut state, margin);
+        let c = p.show(&mut state, margin);
+        match c {
+            'q' => {
+                ncurses::endwin();
+                return;
+            }
+            _ => {
+                ncurses::clear();
+                ncurses::mv(0, 0);
+            }
+        }
     }
     let _ = ncurses::getch();
     ncurses::endwin();
@@ -63,22 +73,13 @@ struct PageState {
     pub fg_color: Option<i16>,
 }
 impl Page {
-    fn show(&mut self, state: &mut PageState, margin: u8) {
+    fn show(&mut self, state: &mut PageState, margin: u8) -> char {
         for line in &self.lines {
             proceed_line(state, line, margin as i32);
         }
         let c = ncurses::getch();
         use std::char;
-        match char::from_u32(c as u32).unwrap_or('a') {
-            'q' => {
-                ncurses::endwin();
-                std::process::exit(0);
-            }
-            _ => {
-                ncurses::clear();
-                ncurses::mv(0, 0);
-            }
-        }
+        return char::from_u32(c as u32).unwrap_or('a');
     }
 }
 fn show_title(title: &String) {
@@ -94,11 +95,11 @@ fn show_title(title: &String) {
     ncurses::attroff(ncurses::A_BOLD());
 }
 
-fn proceed_line(state: &mut PageState, l: &Line, margin: i32) {
+fn proceed_line(state: &mut PageState, l: &Line, margin: i32) -> Option<char> {
     match l {
-        Line::Comment(_) => {}
-        Line::NewPage(_) => {}
-        Line::Invalid(_) => {}
+        Line::Comment(_) => None,
+        Line::NewPage(_) => None,
+        Line::Invalid(_) => None,
         Line::EndOutput => {
             let y = ncurses::getcury(ncurses::stdscr());
             ncurses::mv(y, margin as i32);
@@ -111,6 +112,7 @@ fn proceed_line(state: &mut PageState, l: &Line, margin: i32) {
             ncurses::addch('\'' as ncurses::chtype);
             state.begin_output = false;
             ncurses::mv(y + 1, margin);
+            None
         }
         Line::BeginOutput => {
             let y = ncurses::getcury(ncurses::stdscr());
@@ -124,6 +126,7 @@ fn proceed_line(state: &mut PageState, l: &Line, margin: i32) {
             ncurses::addch('.' as ncurses::chtype);
             state.begin_output = true;
             ncurses::mv(y + 1, margin);
+            None
         }
         Line::PlainText(v) => {
             let y = ncurses::getcury(ncurses::stdscr());
@@ -144,21 +147,24 @@ fn proceed_line(state: &mut PageState, l: &Line, margin: i32) {
             // 2. Split line
             ncurses::addstr(v.as_str());
             ncurses::mv(y + 1, margin);
+            None
         }
         Line::TripleMinus => {
-            let ch = ncurses::getch();
+            let c = ncurses::getch();
             use std::char;
-            let ch = char::from_u32(ch as u32).unwrap_or('a');
-            if ch == 'q' {
+            let c = char::from_u32(c as u32).unwrap_or('a');
+            if c == 'q' {
                 ncurses::endwin();
                 std::process::exit(0);
             }
+            Some(c)
         }
         Line::Author(v) => {
             let y = ncurses::getcury(ncurses::stdscr());
             let x = ncurses::getmaxx(ncurses::stdscr());
             let pad = (x - v.len() as i32) / 2;
             ncurses::mvprintw(y + 1, pad, v.as_str());
+            None
         }
         Line::Date(v) => {
             let y = ncurses::getcury(ncurses::stdscr());
@@ -177,29 +183,43 @@ fn proceed_line(state: &mut PageState, l: &Line, margin: i32) {
                 let pad = (x - v.len() as i32) / 2;
                 ncurses::mvprintw(y + 2, pad, v.as_str());
             };
+            None
         }
-        Line::Title(v) => show_title(v),
-        Line::Heading(v) => show_title(v),
+        Line::Title(v) => {
+            show_title(v);
+            None
+        }
+        Line::Heading(v) => {
+            show_title(v);
+            None
+        }
         Line::Color(c) => {
             ncurses::attron(ncurses::COLOR_PAIR(*c));
+            None
         }
         Line::RevOn => {
             ncurses::attron(ncurses::A_REVERSE());
+            None
         }
         Line::RevOff => {
             ncurses::attroff(ncurses::A_REVERSE());
+            None
         }
         Line::BoldOn => {
             ncurses::attron(ncurses::A_BOLD());
+            None
         }
         Line::BoldOff => {
             ncurses::attroff(ncurses::A_BOLD());
+            None
         }
         Line::UnderlineOn => {
             ncurses::attron(ncurses::A_UNDERLINE());
+            None
         }
         Line::UnderlineOff => {
             ncurses::attroff(ncurses::A_UNDERLINE());
+            None
         }
         Line::BgColor(c) => {
             setup_bg(*c);
@@ -208,12 +228,14 @@ fn proceed_line(state: &mut PageState, l: &Line, margin: i32) {
             } else {
                 ncurses::bkgd(ncurses::COLOR_PAIR(ncurses::COLOR_WHITE));
             }
+            None
         }
         Line::FgColor(c) => {
             state.fg_color = Some(*c);
             ncurses::attron(ncurses::COLOR_PAIR(*c));
+            None
         }
-        _ => {}
+        _ => None,
     }
 }
 
