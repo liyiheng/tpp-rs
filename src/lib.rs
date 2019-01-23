@@ -75,7 +75,13 @@ struct PageState {
 impl Page {
     fn show(&mut self, state: &mut PageState, margin: u8) -> char {
         for line in &self.lines {
-            proceed_line(state, line, margin as i32);
+            let ch = proceed_line(state, line, margin as i32);
+            if ch.is_none() {
+                continue;
+            }
+            if ch.unwrap() == 'q' {
+                return 'q';
+            }
         }
         let c = ncurses::getch();
         use std::char;
@@ -153,10 +159,6 @@ fn proceed_line(state: &mut PageState, l: &Line, margin: i32) -> Option<char> {
             let c = ncurses::getch();
             use std::char;
             let c = char::from_u32(c as u32).unwrap_or('a');
-            if c == 'q' {
-                ncurses::endwin();
-                std::process::exit(0);
-            }
             Some(c)
         }
         Line::Author(v) => {
@@ -233,6 +235,10 @@ fn proceed_line(state: &mut PageState, l: &Line, margin: i32) -> Option<char> {
         Line::FgColor(c) => {
             state.fg_color = Some(*c);
             ncurses::attron(ncurses::COLOR_PAIR(*c));
+            None
+        }
+        Line::Sleep(n) => {
+            std::thread::sleep(std::time::Duration::from_secs(*n as u64));
             None
         }
         _ => None,
