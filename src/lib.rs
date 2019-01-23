@@ -271,6 +271,17 @@ fn proceed_line(state: &mut PageState, l: &Line, margin: i32) -> Option<char> {
             std::thread::sleep(std::time::Duration::from_secs(*n as u64));
             None
         }
+        Line::HorLine => {
+            ncurses::attron(ncurses::A_BOLD());
+            let y = ncurses::getcury(ncurses::stdscr());
+            let width = ncurses::getmaxx(ncurses::stdscr());
+            for i in 0..width {
+                ncurses::mv(y, i);
+                ncurses::addch('-' as ncurses::chtype);
+            }
+            ncurses::attroff(ncurses::A_BOLD());
+            None
+        }
         _ => None,
     }
 }
@@ -327,7 +338,6 @@ pub enum Line {
     BgColor(i16),      // --bgcolor <color>
     FgColor(i16),      // --fgcolor <color>
     Heading(String),
-    HorLine(String),
     Header(String),
     Footer(String),
     Center(String),
@@ -336,6 +346,7 @@ pub enum Line {
     Sleep(i16),
     Huge(String),
     SetHugeFont(String),
+    HorLine,
     RevOn,
     RevOff,
     UnderlineOn,
@@ -401,7 +412,7 @@ pub fn parse_line(dat: &[u8]) -> Line {
         b"title" => Line::Title(value),
         b"##" => Line::Comment(value),
         b"heading" => Line::Heading(value),
-        b"horline" => Line::HorLine(value),
+        b"horline" => Line::HorLine,
         b"header" => Line::Header(value),
         b"footer" => Line::Footer(value),
         b"color" => get_color(&value)
