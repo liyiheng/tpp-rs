@@ -46,6 +46,28 @@ pub fn start_with_margin(pages: &mut Vec<Page>, margin: u8) {
         fg_color: None,
     };
     init_ncurses();
+    let l = pages.len();
+    let mut i = 0;
+    while i < l {
+        let p = &pages[i];
+        let c = p.show(&mut state, margin);
+        ncurses::clear();
+        ncurses::mv(0, 0);
+        match c {
+            'q' => {
+                ncurses::endwin();
+                return;
+            }
+            'b' | 'B' => {
+                if i > 0 {
+                    i -= 1;
+                }
+                continue;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
     for p in pages {
         let c = p.show(&mut state, margin);
         match c {
@@ -53,6 +75,7 @@ pub fn start_with_margin(pages: &mut Vec<Page>, margin: u8) {
                 ncurses::endwin();
                 return;
             }
+            'b' | 'B' => {}
             _ => {
                 ncurses::clear();
                 ncurses::mv(0, 0);
@@ -73,14 +96,21 @@ struct PageState {
     pub fg_color: Option<i16>,
 }
 impl Page {
-    fn show(&mut self, state: &mut PageState, margin: u8) -> char {
+    fn show(&self, state: &mut PageState, margin: u8) -> char {
         for line in &self.lines {
             let ch = proceed_line(state, line, margin as i32);
             if ch.is_none() {
                 continue;
             }
-            if ch.unwrap() == 'q' {
-                return 'q';
+            let ch = ch.unwrap();
+            match ch {
+                'q' | 'Q' => {
+                    return 'q';
+                }
+                'b' | 'B' => {
+                    return 'b';
+                }
+                _ => {}
             }
         }
         let c = ncurses::getch();
