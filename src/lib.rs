@@ -98,7 +98,7 @@ struct PageState {
 impl Page {
     fn show(&self, state: &mut PageState, margin: u8) -> char {
         for line in &self.lines {
-            let ch = proceed_line(state, line, margin as i32);
+            let ch = proceed_line(state, line, i32::from(margin));
             if ch.is_none() {
                 continue;
             }
@@ -114,16 +114,15 @@ impl Page {
             }
         }
         let c = ncurses::getch();
-        use std::char;
-        return char::from_u32(c as u32).unwrap_or('a');
+        std::char::from_u32(c as u32).unwrap_or('a')
     }
 }
-fn show_title(title: &String) {
+fn show_title(title: &str) {
     let width = ncurses::getmaxx(ncurses::stdscr());
     ncurses::attron(ncurses::A_BOLD());
     let pad = (width - title.len() as i32) / 2;
     if pad > 0 {
-        let s = title.clone() + "\n";
+        let s = (&(*title)).to_owned() + "\n";
         ncurses::mvprintw(3, pad, s.as_str());
     } else {
         // TODO
@@ -368,8 +367,8 @@ pub enum Line {
     BoldOn,
     BoldOff,
 }
-fn get_color(s: &String) -> Option<i16> {
-    match s.as_str() {
+fn get_color(s: &str) -> Option<i16> {
+    match s {
         "red" => Some(ncurses::COLOR_RED),
         "white" => Some(ncurses::COLOR_WHITE),
         "yellow" => Some(ncurses::COLOR_YELLOW),
@@ -416,14 +415,14 @@ pub fn parse_line(dat: &[u8]) -> Line {
         b"header" => Line::Header(value),
         b"footer" => Line::Footer(value),
         b"color" => get_color(&value)
-            .map(|c| Line::Color(c))
-            .unwrap_or(Line::Invalid(val_str(dat))),
+            .map(Line::Color)
+            .unwrap_or_else(|| Line::Invalid(val_str(dat))),
         b"bgcolor" => get_color(&value)
-            .map(|c| Line::BgColor(c))
-            .unwrap_or(Line::Invalid(val_str(dat))),
+            .map(Line::BgColor)
+            .unwrap_or_else(|| Line::Invalid(val_str(dat))),
         b"fgcolor" => get_color(&value)
-            .map(|c| Line::FgColor(c))
-            .unwrap_or(Line::Invalid(val_str(dat))),
+            .map(Line::FgColor)
+            .unwrap_or_else(|| Line::Invalid(val_str(dat))),
         b"center" => Line::Center(value),
         b"right" => Line::Right(value),
         b"exec" => Line::Exec(value),
