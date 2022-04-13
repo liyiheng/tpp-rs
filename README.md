@@ -10,7 +10,7 @@ A rust port of [tpp](https://github.com/cbbrowne/tpp)
 ## Have a try
 
 ```sh
-git clone https://github.com/XanthusL/tpp-rs.git
+git clone https://github.com/liyiheng/tpp-rs.git
 cd tpp-rs
 cargo run rust.tpp
 ```
